@@ -1,18 +1,22 @@
 #!python3
 import freetype
-import zlib
 import sys
-import re
 import math
 import argparse
 from collections import namedtuple
+import flatbuffers
+
+import EpdFont
+import EpdUnicodeInterval
+import EpdGlyph
 
 # Originally from https://github.com/vroland/epdiy
 
-parser = argparse.ArgumentParser(description="Generate a header file from a font to be used with epdiy.")
-parser.add_argument("name", action="store", help="name of the font.")
+parser = argparse.ArgumentParser(description="Generate a FlatBuffers binary file from a font.")
+parser.add_argument("name", action="store", help="name of the font (used for output filename).")
 parser.add_argument("size", type=int, help="font size to use.")
 parser.add_argument("fontstack", action="store", nargs='+', help="list of font files, ordered by descending priority.")
+parser.add_argument("--output", "-o", action="store", help="output file path (default: <name>.epd_fb)")
 parser.add_argument("--2bit", dest="is2Bit", action="store_true", help="generate 2-bit greyscale bitmap instead of 1-bit black and white.")
 parser.add_argument("--additional-intervals", dest="additional_intervals", action="append", help="Additional code point intervals to export as min,max. This argument can be repeated.")
 args = parser.parse_args()
@@ -32,73 +36,73 @@ intervals = [
     (0x0000, 0x007F),
     ### Latin-1 Supplement ###
     # Accented characters for Western European languages
-    (0x0080, 0x00FF),
-    ### Latin Extended-A ###
-    # Eastern European and Baltic languages
-    (0x0100, 0x017F),
-    ### General Punctuation (core subset) ###
-    # Smart quotes, en dash, em dash, ellipsis, NO-BREAK SPACE
-    (0x2000, 0x206F),
-    ### Basic Symbols From "Latin-1 + Misc" ###
-    # dashes, quotes, prime marks
-    (0x2010, 0x203A),
-    # misc punctuation
-    (0x2040, 0x205F),
-    # common currency symbols
-    (0x20A0, 0x20CF),
-    ### Combining Diacritical Marks (minimal subset) ###
-    # Needed for proper rendering of many extended Latin languages
-    (0x0300, 0x036F),
-    ### Greek & Coptic ###
-    # Used in science, maths, philosophy, some academic texts
-    # (0x0370, 0x03FF),
-    ### Cyrillic ###
-    # Russian, Ukrainian, Bulgarian, etc.
-    (0x0400, 0x04FF),
-    ### Math Symbols (common subset) ###
-    # General math operators
-    (0x2200, 0x22FF),
-    # Arrows
-    (0x2190, 0x21FF),
-    ### CJK ###
-    # Core Unified Ideographs
-    # (0x4E00, 0x9FFF),
-    # # Extension A
-    # (0x3400, 0x4DBF),
-    # # Extension B
-    # (0x20000, 0x2A6DF),
-    # # Extension C–F
-    # (0x2A700, 0x2EBEF),
-    # # Extension G
-    # (0x30000, 0x3134F),
-    # # Hiragana
-    # (0x3040, 0x309F),
-    # # Katakana
-    # (0x30A0, 0x30FF),
-    # # Katakana Phonetic Extensions
-    # (0x31F0, 0x31FF),
-    # # Halfwidth Katakana
-    # (0xFF60, 0xFF9F),
-    # # Hangul Syllables
-    # (0xAC00, 0xD7AF),
-    # # Hangul Jamo
-    # (0x1100, 0x11FF),
-    # # Hangul Compatibility Jamo
-    # (0x3130, 0x318F),
-    # # Hangul Jamo Extended-A
-    # (0xA960, 0xA97F),
-    # # Hangul Jamo Extended-B
-    # (0xD7B0, 0xD7FF),
-    # # CJK Radicals Supplement
-    # (0x2E80, 0x2EFF),
-    # # Kangxi Radicals
-    # (0x2F00, 0x2FDF),
-    # # CJK Symbols and Punctuation
-    # (0x3000, 0x303F),
-    # # CJK Compatibility Forms
-    # (0xFE30, 0xFE4F),
-    # # CJK Compatibility Ideographs
-    # (0xF900, 0xFAFF),
+    # (0x0080, 0x00FF),
+    # ### Latin Extended-A ###
+    # # Eastern European and Baltic languages
+    # (0x0100, 0x017F),
+    # ### General Punctuation (core subset) ###
+    # # Smart quotes, en dash, em dash, ellipsis, NO-BREAK SPACE
+    # (0x2000, 0x206F),
+    # ### Basic Symbols From "Latin-1 + Misc" ###
+    # # dashes, quotes, prime marks
+    # (0x2010, 0x203A),
+    # # misc punctuation
+    # (0x2040, 0x205F),
+    # # common currency symbols
+    # (0x20A0, 0x20CF),
+    # ### Combining Diacritical Marks (minimal subset) ###
+    # # Needed for proper rendering of many extended Latin languages
+    # (0x0300, 0x036F),
+    # ### Greek & Coptic ###
+    # # Used in science, maths, philosophy, some academic texts
+    # # (0x0370, 0x03FF),
+    # ### Cyrillic ###
+    # # Russian, Ukrainian, Bulgarian, etc.
+    # (0x0400, 0x04FF),
+    # ### Math Symbols (common subset) ###
+    # # General math operators
+    # (0x2200, 0x22FF),
+    # # Arrows
+    # (0x2190, 0x21FF),
+    # ### CJK ###
+    # # Core Unified Ideographs
+    # # (0x4E00, 0x9FFF),
+    # # # Extension A
+    # # (0x3400, 0x4DBF),
+    # # # Extension B
+    # # (0x20000, 0x2A6DF),
+    # # # Extension C–F
+    # # (0x2A700, 0x2EBEF),
+    # # # Extension G
+    # # (0x30000, 0x3134F),
+    # # # Hiragana
+    # # (0x3040, 0x309F),
+    # # # Katakana
+    # # (0x30A0, 0x30FF),
+    # # # Katakana Phonetic Extensions
+    # # (0x31F0, 0x31FF),
+    # # # Halfwidth Katakana
+    # # (0xFF60, 0xFF9F),
+    # # # Hangul Syllables
+    # # (0xAC00, 0xD7AF),
+    # # # Hangul Jamo
+    # # (0x1100, 0x11FF),
+    # # # Hangul Compatibility Jamo
+    # # (0x3130, 0x318F),
+    # # # Hangul Jamo Extended-A
+    # # (0xA960, 0xA97F),
+    # # # Hangul Jamo Extended-B
+    # # (0xD7B0, 0xD7FF),
+    # # # CJK Radicals Supplement
+    # # (0x2E80, 0x2EFF),
+    # # # Kangxi Radicals
+    # # (0x2F00, 0x2FDF),
+    # # # CJK Symbols and Punctuation
+    # # (0x3000, 0x303F),
+    # # # CJK Compatibility Forms
+    # # (0xFE30, 0xFE4F),
+    # # # CJK Compatibility Ideographs
+    # # (0xF900, 0xFAFF),
 ]
 
 add_ints = []
@@ -261,37 +265,82 @@ face = load_glyph(ord('|'))
 glyph_data = []
 glyph_props = []
 for index, glyph in enumerate(all_glyphs):
+    print(f"Glyph {index}: code point {glyph[0].code_point} ({hex(glyph[0].code_point)}), size {glyph[0].width}x{glyph[0].height}, advance {glyph[0].advance_x}, left {glyph[0].left}, top {glyph[0].top}, data length {glyph[0].data_length}, data offset {glyph[0].data_offset}", file=sys.stderr)
     props, packed = glyph
     glyph_data.extend([b for b in packed])
     glyph_props.append(props)
 
-print(f"/**\n * generated by fontconvert.py\n * name: {font_name}\n * size: {size}\n * mode: {'2-bit' if is2Bit else '1-bit'}\n */")
-print("#pragma once")
-print("#include \"EpdFontData.h\"\n")
-print(f"static const uint8_t {font_name}Bitmaps[{len(glyph_data)}] = {{")
-for c in chunks(glyph_data, 16):
-    print ("    " + " ".join(f"0x{b:02X}," for b in c))
-print ("};\n");
+# Build FlatBuffers binary
+builder = flatbuffers.Builder(4096)
 
-print(f"static const EpdGlyph {font_name}Glyphs[] = {{")
-for i, g in enumerate(glyph_props):
-    print ("    { " + ", ".join([f"{a}" for a in list(g[:-1])]),"},", f"// {chr(g.code_point) if g.code_point != 92 else '<backslash>'}")
-print ("};\n");
+# Create bitmap vector
+bitmap_vector_start = builder.StartVector(1, len(glyph_data), 1)
+for byte_val in reversed(glyph_data):
+    builder.PrependUint8(byte_val)
+bitmap_offset = builder.EndVector()
 
-print(f"static const EpdUnicodeInterval {font_name}Intervals[] = {{")
+# Create glyph structs vector
+# Each glyph struct: width(u8), height(u8), advance_x(u8), left(i16), top(i16), data_length(u16), data_offset(u32)
+# Build each glyph as we would with any struct
+glyph_struct_offsets = []
+for g in glyph_props:
+    EpdGlyph.CreateEpdGlyph(builder,
+        g.width,
+        g.height,
+        g.advance_x,
+        g.left,
+        g.top,
+        g.data_length,
+        g.data_offset
+    )
+    glyph = builder.EndObject()
+
+    glyph_struct_offsets.append(builder.EndObject())
+
+# Create vector of glyph structs
+builder.StartVector(1, len(glyph_struct_offsets), 1)
+for offset in reversed(glyph_struct_offsets):
+    builder.PrependUOffsetTRelative(offset)
+glyphs_offset = builder.EndVector()
+
+# Create interval structs vector
+interval_struct_offsets = []
 offset = 0
 for i_start, i_end in intervals:
-    print (f"    {{ 0x{i_start:X}, 0x{i_end:X}, 0x{offset:X} }},")
+    builder.StartObject(0)
+    builder.PrependUint32(offset)
+    builder.PrependUint32(i_end)
+    builder.PrependUint32(i_start)
+    interval_struct_offsets.append(builder.EndObject())
     offset += i_end - i_start + 1
-print ("};\n");
 
-print(f"static const EpdFontData {font_name} = {{")
-print(f"    {font_name}Bitmaps,")
-print(f"    {font_name}Glyphs,")
-print(f"    {font_name}Intervals,")
-print(f"    {len(intervals)},")
-print(f"    {norm_ceil(face.size.height)},")
-print(f"    {norm_ceil(face.size.ascender)},")
-print(f"    {norm_floor(face.size.descender)},")
-print(f"    {'true' if is2Bit else 'false'},")
-print("};")
+builder.StartVector(1, len(interval_struct_offsets), 1)
+for offset in reversed(interval_struct_offsets):
+    builder.PrependUOffsetTRelative(offset)
+intervals_offset = builder.EndVector()
+
+# Create root EpdFont table
+builder.StartObject(7)
+builder.PrependUOffsetTRelativeSlot(0, bitmap_offset, 0)
+builder.PrependUOffsetTRelativeSlot(1, glyphs_offset, 0)
+builder.PrependUOffsetTRelativeSlot(2, intervals_offset, 0)
+builder.PrependUint8Slot(3, norm_ceil(face.size.height), 0)
+builder.PrependInt32Slot(4, norm_ceil(face.size.ascender), 0)
+builder.PrependInt32Slot(5, norm_floor(face.size.descender), 0)
+builder.PrependBoolSlot(6, is2Bit, False)
+font_offset = builder.EndObject()
+
+builder.Finish(font_offset)
+buf = bytes(builder.Output())
+
+# Write to file
+output_file = args.output if args.output else f"{font_name}.epd_fb"
+with open(output_file, 'wb') as f:
+    f.write(buf)
+
+print(f"Font file generated: {output_file}", file=sys.stderr)
+print(f"  - glyphs: {len(glyph_props)}", file=sys.stderr)
+print(f"  - intervals: {len(intervals)}", file=sys.stderr)
+print(f"  - bitmap size: {len(glyph_data)} bytes", file=sys.stderr)
+print(f"  - total size: {len(buf)} bytes", file=sys.stderr)
+print(f"  - 2-bit mode: {is2Bit}", file=sys.stderr)

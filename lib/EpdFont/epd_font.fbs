@@ -1,0 +1,31 @@
+// Schema for EpdFont stored as a FlatBuffer
+namespace epd;
+
+// Per-glyph packed struct (must be a struct for compact storage)
+struct EpdGlyph {
+  width:ubyte;
+  height:ubyte;
+  advance_x:ubyte;
+  left:short;
+  top:short;
+  data_length:ushort;
+  data_offset:uint;
+}
+
+struct EpdUnicodeInterval {
+  first:uint;
+  last:uint;
+  offset:uint;
+}
+
+table EpdFont {
+  bitmap:[ubyte];
+  glyph:[EpdGlyph];
+  intervals:[EpdUnicodeInterval];
+  advance_y:ubyte;
+  ascender:int;
+  descender:int;
+  is_2bit:bool;
+}
+
+root_type EpdFont;

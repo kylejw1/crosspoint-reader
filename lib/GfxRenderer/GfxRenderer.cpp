@@ -83,6 +83,29 @@ void GfxRenderer::drawCenteredText(const int fontId, const int y, const char* te
   drawText(fontId, x, y, text, black, style);
 }
 
+void GfxRenderer::drawTextKyle(EpdFont *font, const int x, const int y, const char* text, const bool black,
+                           const EpdFontFamily::Style style) const {
+  const int yPos = y + font->data->advanceY;
+  int xpos = x;
+
+  // cannot draw a NULL / empty string
+  if (text == nullptr || *text == '\0') {
+    return;
+  }
+
+  EpdFontFamily family = EpdFontFamily(font, font, font, font);
+
+  // no printable characters
+  if (!family.hasPrintableChars(text, style)) {
+    return;
+  }
+
+  uint32_t cp;
+  while ((cp = utf8NextCodepoint(reinterpret_cast<const uint8_t**>(&text)))) {
+    renderChar(family, cp, &xpos, &yPos, black, style);
+  }
+}
+
 void GfxRenderer::drawText(const int fontId, const int x, const int y, const char* text, const bool black,
                            const EpdFontFamily::Style style) const {
   const int yPos = y + getFontAscenderSize(fontId);

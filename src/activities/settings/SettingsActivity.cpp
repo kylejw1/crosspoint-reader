@@ -104,6 +104,46 @@ void SettingsActivity::loop() {
     // Move selection down (with wrap around)
     selectedSettingIndex = (selectedSettingIndex < settingsCount - 1) ? (selectedSettingIndex + 1) : 0;
     updateRequired = true;
+    
+    EpdFont* kyle = EpdFont::loadFromFlatbufferFile("/fonts/kyle.font");
+
+
+    if (kyle == nullptr)
+      Serial.printf("kyle is null\n");
+    else {
+      Serial.printf("kyle interval count: %d\n", kyle->data->intervalCount);
+
+      for (uint32_t i = 0; i < kyle->data->intervalCount; i++) {
+        Serial.printf("Interval %d: %u to %u (offset %u)\n", i,
+                      kyle->data->intervals[i].first,
+                      kyle->data->intervals[i].last,
+                      kyle->data->intervals[i].offset);
+      }
+
+      const EpdGlyph* glyph = kyle->getGlyph('A');
+      if (glyph == nullptr) {
+        Serial.printf("Glyph for 'A' not found %d\n", 'A');
+        return;
+      }
+      Serial.printf("Glyph for 'A': bitmap offset %d\n", glyph->dataOffset);
+      Serial.printf("Glyph for 'A': bitmap length %d\n", glyph->dataLength);
+      const uint8_t *bitmap_start = &kyle->data->bitmap[glyph->dataOffset];
+      for (int i = 0; i < glyph->dataLength; i++) {
+        Serial.printf("%02X ", bitmap_start[i]);
+        if ((i + 1) % 16 == 0)
+          Serial.printf("\n");
+      }
+      Serial.printf("\n");
+
+      renderer.clearScreen();
+      for (int x = 0; x < 100; x += 20) {
+        for (int y = 0; y < 100; y += 20) {
+          Serial.printf("x=%d, y=%d\n", x, y);
+          renderer.drawTextKyle(kyle, x, y, "Hello", true, EpdFontFamily::REGULAR);
+        }
+      }
+      renderer.displayBuffer();
+    }
   }
 }
 

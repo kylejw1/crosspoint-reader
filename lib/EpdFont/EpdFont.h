@@ -8,6 +8,9 @@ class EpdFont {
   const EpdFontData* data;
   explicit EpdFont(const EpdFontData* data) : data(data) {}
   ~EpdFont() = default;
+  // Load an `EpdFont` instance from a FlatBuffers file on disk.
+  // Returns nullptr if FlatBuffers support is not enabled or on error.
+  static EpdFont* loadFromFlatbufferFile(const char* path);
   void getTextDimensions(const char* string, int* w, int* h) const;
   bool hasPrintableChars(const char* string) const;
 
