@@ -7,6 +7,9 @@
 #include "MappedInputManager.h"
 #include "OtaUpdateActivity.h"
 #include "fontIds.h"
+#include <SDCardManager.h>
+
+#include "epd_font_data_generated.h"
 
 // Define the static settings list
 namespace {
@@ -105,45 +108,100 @@ void SettingsActivity::loop() {
     selectedSettingIndex = (selectedSettingIndex < settingsCount - 1) ? (selectedSettingIndex + 1) : 0;
     updateRequired = true;
     
-    EpdFont* kyle = EpdFont::loadFromFlatbufferFile("/fonts/kyle.font");
+    FsFile font;
 
+    const auto ncxBuffer = static_cast<uint8_t*>(malloc(10000));
+    if (!ncxBuffer) {
+      Serial.println("Failed to allocate memory for font data!");
+      return;
+    } 
+      
+    Serial.println("Memory allocated for font data.");
+    
 
-    if (kyle == nullptr)
-      Serial.printf("kyle is null\n");
-    else {
-      Serial.printf("kyle interval count: %d\n", kyle->data->intervalCount);
+    if (!SdMan.openFileForRead("KYLE", "/fonts/kyle.font", font)) {
+      Serial.println("Failed to open font file!");
+      return;
+    } 
+    Serial.println("Font file opened successfully.");
 
-      for (uint32_t i = 0; i < kyle->data->intervalCount; i++) {
-        Serial.printf("Interval %d: %u to %u (offset %u)\n", i,
-                      kyle->data->intervals[i].first,
-                      kyle->data->intervals[i].last,
-                      kyle->data->intervals[i].offset);
-      }
+    font.readBytes(ncxBuffer, 10000);
+    font.close();
+    Serial.println("Font data read into buffer.");
 
-      const EpdGlyph* glyph = kyle->getGlyph('A');
-      if (glyph == nullptr) {
-        Serial.printf("Glyph for 'A' not found %d\n", 'A');
-        return;
-      }
-      Serial.printf("Glyph for 'A': bitmap offset %d\n", glyph->dataOffset);
-      Serial.printf("Glyph for 'A': bitmap length %d\n", glyph->dataLength);
-      const uint8_t *bitmap_start = &kyle->data->bitmap[glyph->dataOffset];
-      for (int i = 0; i < glyph->dataLength; i++) {
-        Serial.printf("%02X ", bitmap_start[i]);
-        if ((i + 1) % 16 == 0)
-          Serial.printf("\n");
-      }
-      Serial.printf("\n");
+    const epd::EpdFontData *fontData = epd::GetEpdFontData(ncxBuffer);
+    Serial.println("Font data parsed from buffer.");
+    Serial.printf("Font ascender: %d\n", fontData->ascender());
+    Serial.printf("Font descender: %d\n", fontData->descender());
+    Serial.printf("Font is 2-bit: %d\n", fontData->is_2bit());
+    // Serial.printf("Font glyph count: %d\n", fontData->glyphs()->size());
+    Serial.printf("Font interval count: %d\n", fontData->intervals()->size());
 
-      renderer.clearScreen();
-      for (int x = 0; x < 100; x += 20) {
-        for (int y = 0; y < 100; y += 20) {
-          Serial.printf("x=%d, y=%d\n", x, y);
-          renderer.drawTextKyle(kyle, x, y, "Hello", true, EpdFontFamily::REGULAR);
-        }
-      }
-      renderer.displayBuffer();
+    for (int i = 0; i < 5; i++) {
+      const auto interval = fontData->intervals()->Get(i);
+      Serial.printf("Interval %d: first=%d, last=%d, offset=%d\n", i, interval->first(), interval->last(), interval->offset());
     }
+
+    const uint8_t *bitmap = fontData->bitmap()->data();
+    Serial.println("Bitmap data accessed.");
+
+
+    for (int i = 0; i < 320; i++) {
+      if (i % 16 == 0) {
+        Serial.println();
+      }
+      Serial.printf("%02X ", bitmap[i]);
+    }
+
+    EpdGlyph* glyphs = (EpdGlyph*)malloc(sizeof(EpdGlyph) * fontData->glyph()->size());
+    for (int i = 0; i < fontData->glyph()->size(); i++) {
+      auto fbGlyph = fontData->glyph()->Get(i);
+      glyphs[i].width = fbGlyph->width();
+      glyphs[i].height = fbGlyph->height();
+      glyphs[i].advanceX = fbGlyph->advance_x();
+      glyphs[i].left = fbGlyph->left();
+      glyphs[i].top = fbGlyph->top();
+      glyphs[i].dataLength = fbGlyph->data_length();
+      glyphs[i].dataOffset = fbGlyph->data_offset();
+    }
+
+    Serial.printf("Glyph data accessed. Size=%d\n", fontData->glyph()->size());
+
+    for (int i = 0; i < fontData->glyph()->size(); i++) {
+      const auto& glyph = glyphs[i];
+      Serial.printf("Glyph %d: width=%d, height=%d, advanceX=%d, left=%d, top=%d, dataLength=%d, dataOffset=%d\n",
+                    i, glyph.width, glyph.height, glyph.advanceX, glyph.left, glyph.top, glyph.dataLength, glyph.dataOffset);
+    }
+
+    const EpdUnicodeInterval* intervals = reinterpret_cast<const EpdUnicodeInterval*>(fontData->intervals()->Data());
+    Serial.println("Interval data accessed.");
+    uint32_t intervalCount = static_cast<uint32_t>(fontData->intervals()->size());
+    Serial.printf("Interval count accessed: %d\n", intervalCount); 
+    uint8_t advanceY = fontData->advance_y();
+    int ascender = fontData->ascender();
+    int descender = fontData->descender();
+    bool is2Bit = fontData->is_2bit();
+    Serial.printf("Font properties accessed: %d, %d, %d, %d\n", advanceY, ascender, descender, is2Bit);
+
+    EpdFontData fondDataParsed = {
+      bitmap,
+      glyphs,
+      intervals,
+      intervalCount,
+      advanceY,
+      ascender,
+      descender,
+      is2Bit
+    };
+    EpdFont kyleFont(&fondDataParsed);
+    // renderer.insertFont(BOOKERLY_16_FONT_ID, EpdFontFamily(&kyleFont, &kyleFont, &kyleFont, &kyleFont));
+    renderer.clearScreen();
+    renderer.drawTextKyle(&kyleFont, 10, 50, "Hello Kyle Font", true, EpdFontFamily::REGULAR);
+    renderer.displayBuffer();
+
+    free(ncxBuffer);
+    
+    
   }
 }
 

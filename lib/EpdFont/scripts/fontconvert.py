@@ -6,9 +6,10 @@ import argparse
 from collections import namedtuple
 import flatbuffers
 
-import EpdFont
-import EpdUnicodeInterval
-import EpdGlyph
+import epd.EpdFontData as EpdFontData
+import epd.EpdGlyph as EpdGlyph
+import epd.EpdUnicodeInterval as EpdUnicodeInterval
+
 
 # Originally from https://github.com/vroland/epdiy
 
@@ -104,7 +105,7 @@ intervals = [
     # # # CJK Compatibility Ideographs
     # # (0xF900, 0xFAFF),
 ]
-
+print(f"Intervals: {len(intervals)}")
 add_ints = []
 if args.additional_intervals:
     add_ints = [tuple([int(n, base=0) for n in i.split(",")]) for i in args.additional_intervals]
@@ -273,64 +274,88 @@ for index, glyph in enumerate(all_glyphs):
 # Build FlatBuffers binary
 builder = flatbuffers.Builder(4096)
 
-# Create bitmap vector
-bitmap_vector_start = builder.StartVector(1, len(glyph_data), 1)
-for byte_val in reversed(glyph_data):
+
+
+# # Create bitmap vector
+# bitmap_vector_start = builder.StartVector(1, len(glyph_data), 1)
+# for byte_val in reversed(glyph_data):
+#     
+# bitmap_offset = builder.EndVector()
+
+EpdFontData.StartBitmapVector(builder, len(glyph_data))
+for byte_val in bytes(reversed(glyph_data)):
     builder.PrependUint8(byte_val)
 bitmap_offset = builder.EndVector()
 
 # Create glyph structs vector
-# Each glyph struct: width(u8), height(u8), advance_x(u8), left(i16), top(i16), data_length(u16), data_offset(u32)
-# Build each glyph as we would with any struct
 glyph_struct_offsets = []
-for g in glyph_props:
-    EpdGlyph.CreateEpdGlyph(builder,
-        g.width,
-        g.height,
-        g.advance_x,
-        g.left,
-        g.top,
-        g.data_length,
-        g.data_offset
-    )
-    glyph = builder.EndObject()
+for g in reversed(glyph_props):
+    EpdGlyph.Start(builder)
+    EpdGlyph.AddWidth(builder, g.width)
+    EpdGlyph.AddHeight(builder, g.height)
+    EpdGlyph.AddAdvanceX(builder, g.advance_x)
+    EpdGlyph.AddLeft(builder, g.left)
+    EpdGlyph.AddTop(builder, g.top)
+    EpdGlyph.AddDataLength(builder, g.data_length)
+    EpdGlyph.AddDataOffset(builder, g.data_offset)
+    glyph_struct_offsets.append(EpdGlyph.End(builder))
 
-    glyph_struct_offsets.append(builder.EndObject())
-
+# interval_offsets = []
+# offset = 0
+# print(f"Intervals: {len(intervals)}")
+# for i_start, i_end in intervals:
+#     print(f"{i_start} {i_end} {offset}")
+#     interval = EpdUnicodeInterval.CreateEpdUnicodeInterval(builder, i_start, i_end, offset)
+#     interval_offsets.append(interval)
+#     offset += i_end - i_start + 1
+#     break
 # Create vector of glyph structs
-builder.StartVector(1, len(glyph_struct_offsets), 1)
-for offset in reversed(glyph_struct_offsets):
-    builder.PrependUOffsetTRelative(offset)
-glyphs_offset = builder.EndVector()
 
-# Create interval structs vector
-interval_struct_offsets = []
+
+
+# # Create interval structs vector
+# interval_struct_offsets = []
+# offset = 0
+# for i_start, i_end in intervals:
+#     builder.StartObject(3)
+#     EpdUnicodeInterval.CreateEpdUnicodeInterval(builder, i_start, i_end, offset)
+#     offset += i_end - i_start + 1
+#     interval_struct_offsets.append(builder.EndObject())
+
+
+
+
+
+EpdFontData.StartGlyphVector(builder, len(glyph_struct_offsets))
+for offset in glyph_struct_offsets:
+    builder.PrependUOffsetTRelative(offset)
+glyph_offset = builder.EndVector()
+
+EpdFontData.StartIntervalsVector(builder, len(intervals))
+
 offset = 0
-for i_start, i_end in intervals:
-    builder.StartObject(0)
-    builder.PrependUint32(offset)
-    builder.PrependUint32(i_end)
-    builder.PrependUint32(i_start)
-    interval_struct_offsets.append(builder.EndObject())
-    offset += i_end - i_start + 1
+intervals_with_offsets = []
+for interval in intervals:
+    intervals_with_offsets.append((interval[0], interval[1], offset))
+    offset += interval[1] - interval[0] + 1
 
-builder.StartVector(1, len(interval_struct_offsets), 1)
-for offset in reversed(interval_struct_offsets):
-    builder.PrependUOffsetTRelative(offset)
+for i_start, i_end, offset in reversed(intervals_with_offsets):
+    EpdUnicodeInterval.CreateEpdUnicodeInterval(builder, i_start, i_end, offset)
 intervals_offset = builder.EndVector()
 
-# Create root EpdFont table
-builder.StartObject(7)
-builder.PrependUOffsetTRelativeSlot(0, bitmap_offset, 0)
-builder.PrependUOffsetTRelativeSlot(1, glyphs_offset, 0)
-builder.PrependUOffsetTRelativeSlot(2, intervals_offset, 0)
-builder.PrependUint8Slot(3, norm_ceil(face.size.height), 0)
-builder.PrependInt32Slot(4, norm_ceil(face.size.ascender), 0)
-builder.PrependInt32Slot(5, norm_floor(face.size.descender), 0)
-builder.PrependBoolSlot(6, is2Bit, False)
-font_offset = builder.EndObject()
 
-builder.Finish(font_offset)
+EpdFontData.Start(builder)
+EpdFontData.AddBitmap(builder, bitmap_offset)
+EpdFontData.AddGlyph(builder, glyph_offset)
+EpdFontData.AddIntervals(builder, intervals_offset)
+EpdFontData.AddAdvanceY(builder, norm_ceil(face.size.height))
+EpdFontData.AddAscender(builder, norm_ceil(face.size.ascender))
+EpdFontData.AddDescender(builder, norm_floor(face.size.descender))
+EpdFontData.AddIs2bit(builder, is2Bit)  # Uncomment if EpdFontData schema includes is2Bit field   
+
+font_root = EpdFontData.End(builder)
+builder.Finish(font_root)
+
 buf = bytes(builder.Output())
 
 # Write to file
@@ -343,4 +368,22 @@ print(f"  - glyphs: {len(glyph_props)}", file=sys.stderr)
 print(f"  - intervals: {len(intervals)}", file=sys.stderr)
 print(f"  - bitmap size: {len(glyph_data)} bytes", file=sys.stderr)
 print(f"  - total size: {len(buf)} bytes", file=sys.stderr)
+print(f"  - advance Y: {norm_ceil(face.size.height)}", file=sys.stderr)
+print(f"  - ascender: {norm_ceil(face.size.ascender)}", file=sys.stderr)
+print(f"  - descender: {norm_floor(face.size.descender)}", file=sys.stderr)
 print(f"  - 2-bit mode: {is2Bit}", file=sys.stderr)
+
+
+read_font = EpdFontData.EpdFontData.GetRootAsEpdFontData(buf, 0)
+print(f"Read back font data:", file=sys.stderr)
+print(f"  - advance Y: {read_font.AdvanceY()}", file=sys.stderr)
+print(f"  - ascender: {read_font.Ascender()}", file=sys.stderr)
+print(f"  - descender: {read_font.Descender()}", file=sys.stderr)
+print(f"  - is2bit: {read_font.Is2bit()}", file=sys.stderr)
+print(f"  - intervals length: {read_font.IntervalsLength()}", file=sys.stderr)
+for i in range(read_font.GlyphLength()):
+    glyph = read_font.Glyph(i)
+    print(f"  - Glyph {i}: size {glyph.Width()}x{glyph.Height()}, advance {glyph.AdvanceX()}, left {glyph.Left()}, top {glyph.Top()}, data length {glyph.DataLength()}, data offset {glyph.DataOffset()}", file=sys.stderr)
+for i in range(read_font.IntervalsLength()):
+    interval = read_font.Intervals(i)
+    print(f"  - Interval {i}: first {interval.First()} ({hex(interval.First())}), last {interval.Last()} ({hex(interval.Last())}), offset {interval.Offset()}", file=sys.stderr)

@@ -2,7 +2,7 @@
 namespace epd;
 
 // Per-glyph packed struct (must be a struct for compact storage)
-struct EpdGlyph {
+table EpdGlyph {
   width:ubyte;
   height:ubyte;
   advance_x:ubyte;
@@ -18,7 +18,7 @@ struct EpdUnicodeInterval {
   offset:uint;
 }
 
-table EpdFont {
+table EpdFontData {
   bitmap:[ubyte];
   glyph:[EpdGlyph];
   intervals:[EpdUnicodeInterval];
@@ -28,4 +28,7 @@ table EpdFont {
   is_2bit:bool;
 }
 
-root_type EpdFont;
+root_type EpdFontData;
+
+//  flatc --python --cpp -o EpdFontDataFlatBuffer --object-suffix FlatBuffer epd_font_data.fbs 
+ 

@@ -90,18 +90,26 @@ void GfxRenderer::drawTextKyle(EpdFont *font, const int x, const int y, const ch
 
   // cannot draw a NULL / empty string
   if (text == nullptr || *text == '\0') {
+    Serial.printf("[%lu] [GFX] !! Empty string\n", millis());
     return;
   }
 
   EpdFontFamily family = EpdFontFamily(font, font, font, font);
 
-  // no printable characters
-  if (!family.hasPrintableChars(text, style)) {
-    return;
-  }
+  // // no printable characters
+  // if (!family.hasPrintableChars(text, style)) {
+  //   Serial.printf("[%lu] [GFX] No printable characters in string\n", millis());
+  //   return;
+  // }
 
   uint32_t cp;
   while ((cp = utf8NextCodepoint(reinterpret_cast<const uint8_t**>(&text)))) {
+    const EpdGlyph* glyph = family.getGlyph(cp, style);
+    if (!glyph) {
+      Serial.printf("[%lu] [GFX] !! No glyph for char %d\n", millis(), cp);
+      continue;
+    }
+    Serial.printf("glyph width: %d height: %d\n", glyph->width, glyph->height);
     renderChar(family, cp, &xpos, &yPos, black, style);
   }
 }

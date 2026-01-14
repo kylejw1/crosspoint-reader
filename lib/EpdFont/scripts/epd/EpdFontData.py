@@ -6,21 +6,25 @@ import flatbuffers
 from flatbuffers.compat import import_numpy
 np = import_numpy()
 
-class EpdFont(object):
+class EpdFontData(object):
     __slots__ = ['_tab']
 
     @classmethod
-    def GetRootAsEpdFont(cls, buf, offset):
+    def GetRootAs(cls, buf, offset=0):
         n = flatbuffers.encode.Get(flatbuffers.packer.uoffset, buf, offset)
-        x = EpdFont()
+        x = EpdFontData()
         x.Init(buf, n + offset)
         return x
 
-    # EpdFont
+    @classmethod
+    def GetRootAsEpdFontData(cls, buf, offset=0):
+        """This method is deprecated. Please switch to GetRootAs."""
+        return cls.GetRootAs(buf, offset)
+    # EpdFontData
     def Init(self, buf, pos):
         self._tab = flatbuffers.table.Table(buf, pos)
 
-    # EpdFont
+    # EpdFontData
     def Bitmap(self, j):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
@@ -28,50 +32,51 @@ class EpdFont(object):
             return self._tab.Get(flatbuffers.number_types.Uint8Flags, a + flatbuffers.number_types.UOffsetTFlags.py_type(j * 1))
         return 0
 
-    # EpdFont
+    # EpdFontData
     def BitmapAsNumpy(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
             return self._tab.GetVectorAsNumpy(flatbuffers.number_types.Uint8Flags, o)
         return 0
 
-    # EpdFont
+    # EpdFontData
     def BitmapLength(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
-    # EpdFont
+    # EpdFontData
     def BitmapIsNone(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         return o == 0
 
-    # EpdFont
+    # EpdFontData
     def Glyph(self, j):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             x = self._tab.Vector(o)
-            x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 16
+            x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
+            x = self._tab.Indirect(x)
             from epd.EpdGlyph import EpdGlyph
             obj = EpdGlyph()
             obj.Init(self._tab.Bytes, x)
             return obj
         return None
 
-    # EpdFont
+    # EpdFontData
     def GlyphLength(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
-    # EpdFont
+    # EpdFontData
     def GlyphIsNone(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         return o == 0
 
-    # EpdFont
+    # EpdFontData
     def Intervals(self, j):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
@@ -83,55 +88,114 @@ class EpdFont(object):
             return obj
         return None
 
-    # EpdFont
+    # EpdFontData
     def IntervalsLength(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
-    # EpdFont
+    # EpdFontData
     def IntervalsIsNone(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         return o == 0
 
-    # EpdFont
+    # EpdFontData
     def AdvanceY(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
         return 0
 
-    # EpdFont
+    # EpdFontData
     def Ascender(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
         return 0
 
-    # EpdFont
+    # EpdFontData
     def Descender(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(14))
         if o != 0:
             return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
         return 0
 
-    # EpdFont
+    # EpdFontData
     def Is2bit(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(16))
         if o != 0:
             return bool(self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos))
         return False
 
-def EpdFontStart(builder): builder.StartObject(7)
-def EpdFontAddBitmap(builder, bitmap): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(bitmap), 0)
-def EpdFontStartBitmapVector(builder, numElems): return builder.StartVector(1, numElems, 1)
-def EpdFontAddGlyph(builder, glyph): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(glyph), 0)
-def EpdFontStartGlyphVector(builder, numElems): return builder.StartVector(16, numElems, 4)
-def EpdFontAddIntervals(builder, intervals): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(intervals), 0)
-def EpdFontStartIntervalsVector(builder, numElems): return builder.StartVector(12, numElems, 4)
-def EpdFontAddAdvanceY(builder, advanceY): builder.PrependUint8Slot(3, advanceY, 0)
-def EpdFontAddAscender(builder, ascender): builder.PrependInt32Slot(4, ascender, 0)
-def EpdFontAddDescender(builder, descender): builder.PrependInt32Slot(5, descender, 0)
-def EpdFontAddIs2bit(builder, is2bit): builder.PrependBoolSlot(6, is2bit, 0)
-def EpdFontEnd(builder): return builder.EndObject()
+def EpdFontDataStart(builder):
+    builder.StartObject(7)
+
+def Start(builder):
+    EpdFontDataStart(builder)
+
+def EpdFontDataAddBitmap(builder, bitmap):
+    builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(bitmap), 0)
+
+def AddBitmap(builder, bitmap):
+    EpdFontDataAddBitmap(builder, bitmap)
+
+def EpdFontDataStartBitmapVector(builder, numElems):
+    return builder.StartVector(1, numElems, 1)
+
+def StartBitmapVector(builder, numElems):
+    return EpdFontDataStartBitmapVector(builder, numElems)
+
+def EpdFontDataAddGlyph(builder, glyph):
+    builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(glyph), 0)
+
+def AddGlyph(builder, glyph):
+    EpdFontDataAddGlyph(builder, glyph)
+
+def EpdFontDataStartGlyphVector(builder, numElems):
+    return builder.StartVector(4, numElems, 4)
+
+def StartGlyphVector(builder, numElems):
+    return EpdFontDataStartGlyphVector(builder, numElems)
+
+def EpdFontDataAddIntervals(builder, intervals):
+    builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(intervals), 0)
+
+def AddIntervals(builder, intervals):
+    EpdFontDataAddIntervals(builder, intervals)
+
+def EpdFontDataStartIntervalsVector(builder, numElems):
+    return builder.StartVector(12, numElems, 4)
+
+def StartIntervalsVector(builder, numElems):
+    return EpdFontDataStartIntervalsVector(builder, numElems)
+
+def EpdFontDataAddAdvanceY(builder, advanceY):
+    builder.PrependUint8Slot(3, advanceY, 0)
+
+def AddAdvanceY(builder, advanceY):
+    EpdFontDataAddAdvanceY(builder, advanceY)
+
+def EpdFontDataAddAscender(builder, ascender):
+    builder.PrependInt32Slot(4, ascender, 0)
+
+def AddAscender(builder, ascender):
+    EpdFontDataAddAscender(builder, ascender)
+
+def EpdFontDataAddDescender(builder, descender):
+    builder.PrependInt32Slot(5, descender, 0)
+
+def AddDescender(builder, descender):
+    EpdFontDataAddDescender(builder, descender)
+
+def EpdFontDataAddIs2bit(builder, is2bit):
+    builder.PrependBoolSlot(6, is2bit, 0)
+
+def AddIs2bit(builder, is2bit):
+    EpdFontDataAddIs2bit(builder, is2bit)
+
+def EpdFontDataEnd(builder):
+    return builder.EndObject()
+
+def End(builder):
+    return EpdFontDataEnd(builder)

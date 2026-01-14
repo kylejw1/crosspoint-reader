@@ -9,6 +9,10 @@ np = import_numpy()
 class EpdUnicodeInterval(object):
     __slots__ = ['_tab']
 
+    @classmethod
+    def SizeOf(cls):
+        return 12
+
     # EpdUnicodeInterval
     def Init(self, buf, pos):
         self._tab = flatbuffers.table.Table(buf, pos)
