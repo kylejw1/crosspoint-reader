@@ -22,6 +22,7 @@
 #include "activities/settings/SettingsActivity.h"
 #include "activities/util/FullScreenMessageActivity.h"
 #include "fontIds.h"
+#include <EpdFontRam.h>
 
 #define SPI_FQ 40000000
 // Display SPI pins (custom pins for XteinkX4, not hardware SPI defaults)
@@ -43,92 +44,92 @@ GfxRenderer renderer(einkDisplay);
 Activity* currentActivity;
 
 // Fonts
-EpdFont bookerly14RegularFont(&bookerly_14_regular);
-EpdFont bookerly14BoldFont(&bookerly_14_bold);
-EpdFont bookerly14ItalicFont(&bookerly_14_italic);
-EpdFont bookerly14BoldItalicFont(&bookerly_14_bolditalic);
+EpdFontRam bookerly14RegularFont(&bookerly_14_regular);
+EpdFontRam bookerly14BoldFont(&bookerly_14_bold);
+EpdFontRam bookerly14ItalicFont(&bookerly_14_italic);
+EpdFontRam bookerly14BoldItalicFont(&bookerly_14_bolditalic);
 EpdFontFamily bookerly14FontFamily(&bookerly14RegularFont, &bookerly14BoldFont, &bookerly14ItalicFont,
                                    &bookerly14BoldItalicFont);
 #ifndef OMIT_FONTS
-EpdFont bookerly12RegularFont(&bookerly_12_regular);
-EpdFont bookerly12BoldFont(&bookerly_12_bold);
-EpdFont bookerly12ItalicFont(&bookerly_12_italic);
-EpdFont bookerly12BoldItalicFont(&bookerly_12_bolditalic);
+EpdFontRam bookerly12RegularFont(&bookerly_12_regular);
+EpdFontRam bookerly12BoldFont(&bookerly_12_bold);
+EpdFontRam bookerly12ItalicFont(&bookerly_12_italic);
+EpdFontRam bookerly12BoldItalicFont(&bookerly_12_bolditalic);
 EpdFontFamily bookerly12FontFamily(&bookerly12RegularFont, &bookerly12BoldFont, &bookerly12ItalicFont,
                                    &bookerly12BoldItalicFont);
-EpdFont bookerly16RegularFont(&bookerly_16_regular);
-EpdFont bookerly16BoldFont(&bookerly_16_bold);
-EpdFont bookerly16ItalicFont(&bookerly_16_italic);
-EpdFont bookerly16BoldItalicFont(&bookerly_16_bolditalic);
+EpdFontRam bookerly16RegularFont(&bookerly_16_regular);
+EpdFontRam bookerly16BoldFont(&bookerly_16_bold);
+EpdFontRam bookerly16ItalicFont(&bookerly_16_italic);
+EpdFontRam bookerly16BoldItalicFont(&bookerly_16_bolditalic);
 EpdFontFamily bookerly16FontFamily(&bookerly16RegularFont, &bookerly16BoldFont, &bookerly16ItalicFont,
                                    &bookerly16BoldItalicFont);
-EpdFont bookerly18RegularFont(&bookerly_18_regular);
-EpdFont bookerly18BoldFont(&bookerly_18_bold);
-EpdFont bookerly18ItalicFont(&bookerly_18_italic);
-EpdFont bookerly18BoldItalicFont(&bookerly_18_bolditalic);
+EpdFontRam bookerly18RegularFont(&bookerly_18_regular);
+EpdFontRam bookerly18BoldFont(&bookerly_18_bold);
+EpdFontRam bookerly18ItalicFont(&bookerly_18_italic);
+EpdFontRam bookerly18BoldItalicFont(&bookerly_18_bolditalic);
 EpdFontFamily bookerly18FontFamily(&bookerly18RegularFont, &bookerly18BoldFont, &bookerly18ItalicFont,
                                    &bookerly18BoldItalicFont);
 
-EpdFont notosans12RegularFont(&notosans_12_regular);
-EpdFont notosans12BoldFont(&notosans_12_bold);
-EpdFont notosans12ItalicFont(&notosans_12_italic);
-EpdFont notosans12BoldItalicFont(&notosans_12_bolditalic);
+EpdFontRam notosans12RegularFont(&notosans_12_regular);
+EpdFontRam notosans12BoldFont(&notosans_12_bold);
+EpdFontRam notosans12ItalicFont(&notosans_12_italic);
+EpdFontRam notosans12BoldItalicFont(&notosans_12_bolditalic);
 EpdFontFamily notosans12FontFamily(&notosans12RegularFont, &notosans12BoldFont, &notosans12ItalicFont,
                                    &notosans12BoldItalicFont);
-EpdFont notosans14RegularFont(&notosans_14_regular);
-EpdFont notosans14BoldFont(&notosans_14_bold);
-EpdFont notosans14ItalicFont(&notosans_14_italic);
-EpdFont notosans14BoldItalicFont(&notosans_14_bolditalic);
+EpdFontRam notosans14RegularFont(&notosans_14_regular);
+EpdFontRam notosans14BoldFont(&notosans_14_bold);
+EpdFontRam notosans14ItalicFont(&notosans_14_italic);
+EpdFontRam notosans14BoldItalicFont(&notosans_14_bolditalic);
 EpdFontFamily notosans14FontFamily(&notosans14RegularFont, &notosans14BoldFont, &notosans14ItalicFont,
                                    &notosans14BoldItalicFont);
-EpdFont notosans16RegularFont(&notosans_16_regular);
-EpdFont notosans16BoldFont(&notosans_16_bold);
-EpdFont notosans16ItalicFont(&notosans_16_italic);
-EpdFont notosans16BoldItalicFont(&notosans_16_bolditalic);
+EpdFontRam notosans16RegularFont(&notosans_16_regular);
+EpdFontRam notosans16BoldFont(&notosans_16_bold);
+EpdFontRam notosans16ItalicFont(&notosans_16_italic);
+EpdFontRam notosans16BoldItalicFont(&notosans_16_bolditalic);
 EpdFontFamily notosans16FontFamily(&notosans16RegularFont, &notosans16BoldFont, &notosans16ItalicFont,
                                    &notosans16BoldItalicFont);
-EpdFont notosans18RegularFont(&notosans_18_regular);
-EpdFont notosans18BoldFont(&notosans_18_bold);
-EpdFont notosans18ItalicFont(&notosans_18_italic);
-EpdFont notosans18BoldItalicFont(&notosans_18_bolditalic);
+EpdFontRam notosans18RegularFont(&notosans_18_regular);
+EpdFontRam notosans18BoldFont(&notosans_18_bold);
+EpdFontRam notosans18ItalicFont(&notosans_18_italic);
+EpdFontRam notosans18BoldItalicFont(&notosans_18_bolditalic);
 EpdFontFamily notosans18FontFamily(&notosans18RegularFont, &notosans18BoldFont, &notosans18ItalicFont,
                                    &notosans18BoldItalicFont);
 
-EpdFont opendyslexic8RegularFont(&opendyslexic_8_regular);
-EpdFont opendyslexic8BoldFont(&opendyslexic_8_bold);
-EpdFont opendyslexic8ItalicFont(&opendyslexic_8_italic);
-EpdFont opendyslexic8BoldItalicFont(&opendyslexic_8_bolditalic);
+EpdFontRam opendyslexic8RegularFont(&opendyslexic_8_regular);
+EpdFontRam opendyslexic8BoldFont(&opendyslexic_8_bold);
+EpdFontRam opendyslexic8ItalicFont(&opendyslexic_8_italic);
+EpdFontRam opendyslexic8BoldItalicFont(&opendyslexic_8_bolditalic);
 EpdFontFamily opendyslexic8FontFamily(&opendyslexic8RegularFont, &opendyslexic8BoldFont, &opendyslexic8ItalicFont,
                                       &opendyslexic8BoldItalicFont);
-EpdFont opendyslexic10RegularFont(&opendyslexic_10_regular);
-EpdFont opendyslexic10BoldFont(&opendyslexic_10_bold);
-EpdFont opendyslexic10ItalicFont(&opendyslexic_10_italic);
-EpdFont opendyslexic10BoldItalicFont(&opendyslexic_10_bolditalic);
+EpdFontRam opendyslexic10RegularFont(&opendyslexic_10_regular);
+EpdFontRam opendyslexic10BoldFont(&opendyslexic_10_bold);
+EpdFontRam opendyslexic10ItalicFont(&opendyslexic_10_italic);
+EpdFontRam opendyslexic10BoldItalicFont(&opendyslexic_10_bolditalic);
 EpdFontFamily opendyslexic10FontFamily(&opendyslexic10RegularFont, &opendyslexic10BoldFont, &opendyslexic10ItalicFont,
                                        &opendyslexic10BoldItalicFont);
-EpdFont opendyslexic12RegularFont(&opendyslexic_12_regular);
-EpdFont opendyslexic12BoldFont(&opendyslexic_12_bold);
-EpdFont opendyslexic12ItalicFont(&opendyslexic_12_italic);
-EpdFont opendyslexic12BoldItalicFont(&opendyslexic_12_bolditalic);
+EpdFontRam opendyslexic12RegularFont(&opendyslexic_12_regular);
+EpdFontRam opendyslexic12BoldFont(&opendyslexic_12_bold);
+EpdFontRam opendyslexic12ItalicFont(&opendyslexic_12_italic);
+EpdFontRam opendyslexic12BoldItalicFont(&opendyslexic_12_bolditalic);
 EpdFontFamily opendyslexic12FontFamily(&opendyslexic12RegularFont, &opendyslexic12BoldFont, &opendyslexic12ItalicFont,
                                        &opendyslexic12BoldItalicFont);
-EpdFont opendyslexic14RegularFont(&opendyslexic_14_regular);
-EpdFont opendyslexic14BoldFont(&opendyslexic_14_bold);
-EpdFont opendyslexic14ItalicFont(&opendyslexic_14_italic);
-EpdFont opendyslexic14BoldItalicFont(&opendyslexic_14_bolditalic);
+EpdFontRam opendyslexic14RegularFont(&opendyslexic_14_regular);
+EpdFontRam opendyslexic14BoldFont(&opendyslexic_14_bold);
+EpdFontRam opendyslexic14ItalicFont(&opendyslexic_14_italic);
+EpdFontRam opendyslexic14BoldItalicFont(&opendyslexic_14_bolditalic);
 EpdFontFamily opendyslexic14FontFamily(&opendyslexic14RegularFont, &opendyslexic14BoldFont, &opendyslexic14ItalicFont,
                                        &opendyslexic14BoldItalicFont);
 #endif  // OMIT_FONTS
 
-EpdFont smallFont(&notosans_8_regular);
+EpdFontRam smallFont(&notosans_8_regular);
 EpdFontFamily smallFontFamily(&smallFont);
 
-EpdFont ui10RegularFont(&ubuntu_10_regular);
-EpdFont ui10BoldFont(&ubuntu_10_bold);
+EpdFontRam ui10RegularFont(&ubuntu_10_regular);
+EpdFontRam ui10BoldFont(&ubuntu_10_bold);
 EpdFontFamily ui10FontFamily(&ui10RegularFont, &ui10BoldFont);
 
-EpdFont ui12RegularFont(&ubuntu_12_regular);
-EpdFont ui12BoldFont(&ubuntu_12_bold);
+EpdFontRam ui12RegularFont(&ubuntu_12_regular);
+EpdFontRam ui12BoldFont(&ubuntu_12_bold);
 EpdFontFamily ui12FontFamily(&ui12RegularFont, &ui12BoldFont);
 
 // measurement of power button press duration calibration value

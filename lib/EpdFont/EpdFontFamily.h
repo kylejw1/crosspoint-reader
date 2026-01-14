@@ -11,7 +11,11 @@ class EpdFontFamily {
   ~EpdFontFamily() = default;
   void getTextDimensions(const char* string, int* w, int* h, Style style = REGULAR) const;
   bool hasPrintableChars(const char* string, Style style = REGULAR) const;
-  const EpdFontData* getData(Style style = REGULAR) const;
+  const int16_t ascent(Style style = REGULAR) const { return getFont(style)->ascent(); }
+  const int16_t descent(Style style = REGULAR) const { return getFont(style)->descent(); }
+  const int16_t lineHeight(Style style = REGULAR) const { return getFont(style)->lineHeight(); }
+  const bool is2Bit(Style style = REGULAR) const { return getFont(style)->is2Bit(); }
+  const uint8_t* getBitmapData(Style style = REGULAR) const { return getFont(style)->getBitmapData(); }
   const EpdGlyph* getGlyph(uint32_t cp, Style style = REGULAR) const;
 
  private:
